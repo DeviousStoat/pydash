@@ -5,10 +5,13 @@ Functions that wrap other functions.
 """
 
 from inspect import getfullargspec
+from typing import Any, Callable, Generic, Literal, Iterable
 import itertools
 import time
 
 import pydash as pyd
+
+from pydash.types import P, T
 
 
 __all__ = (
@@ -39,10 +42,10 @@ __all__ = (
 )
 
 
-class After(object):
+class After(Generic[P, T]):
     """Wrap a function in an after context."""
 
-    def __init__(self, func, n):
+    def __init__(self, func: Callable[P, T], n: int) -> None:
         try:
             n = int(n)
             assert n >= 0
@@ -52,7 +55,7 @@ class After(object):
         self.n = n
         self.func = func
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T | None:
         """Return results of :attr:`func` after :attr:`n` calls."""
         self.n -= 1
 
@@ -60,12 +63,12 @@ class After(object):
             return self.func(*args, **kwargs)
 
 
-class Ary(object):
+class Ary(Generic[P, T]):
     """Wrap a function in an ary context."""
 
-    def __init__(self, func, n):
+    def __init__(self, func: Callable[P, T], n: int | None) -> None:
         try:
-            n = int(n)
+            n = int(n)  # type: ignore
             assert n >= 0
         except (ValueError, TypeError, AssertionError):
             n = None
@@ -73,22 +76,24 @@ class Ary(object):
         self.n = n
         self.func = func
 
-    def __call__(self, *args, **kwargs):
+    # TODO: don't really know how to type args here
+    def __call__(self, *args, **kwargs) -> T:
         """
         Return results of :attr:`func` with arguments capped to :attr:`n`.
 
         Only positional arguments are capped. Any number of keyword arguments are allowed.
         """
+        capped_args = args
         if self.n is not None:
-            args = args[: self.n]
+            capped_args = args[: self.n]
 
-        return self.func(*args, **kwargs)
+        return self.func(*capped_args, **kwargs)
 
 
-class Before(After):
+class Before(After[P, T], Generic[P, T]):
     """Wrap a function in a before context."""
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T | None:
         self.n -= 1
 
         if self.n > 0:
@@ -123,11 +128,11 @@ class Conjoin(object):
     def __init__(self, *funcs):
         self.funcs = funcs
 
-    def __call__(self, obj):
+    def __call__(self, obj: Any) -> bool:
         """Return result of conjoin `obj` with :attr:`funcs` predicates."""
 
         def iteratee(item):
-            return pyd.every(self.funcs, lambda func: func(item))
+            return pyd.every(self.funcs, lambda func: func(item))  # type: ignore
 
         return pyd.every(obj, iteratee)
 
@@ -170,10 +175,10 @@ class CurryRight(Curry):
         return tuple(list(new_args) + list(self.args))
 
 
-class Debounce(object):
+class Debounce(Generic[P, T]):
     """Wrap a function in a debounce context."""
 
-    def __init__(self, func, wait, max_wait=False):
+    def __init__(self, func: Callable[P, T], wait: int, max_wait: int | Literal[False] = False) -> None:
         self.func = func
         self.wait = wait
         self.max_wait = max_wait
@@ -185,7 +190,7 @@ class Debounce(object):
         self.last_call = pyd.now() - self.wait
         self.last_execution = pyd.now() - max_wait if pyd.is_number(max_wait) else None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
         """
         Execute :attr:`func` if function hasn't been called within last :attr:`wait` milliseconds or
         in last :attr:`max_wait` milliseconds.
@@ -195,14 +200,16 @@ class Debounce(object):
         present = pyd.now()
 
         if (present - self.last_call) >= self.wait or (
-            self.max_wait and (present - self.last_execution) >= self.max_wait
+            self.last_execution
+            and self.max_wait
+            and (present - self.last_execution) >= self.max_wait
         ):
             self.last_result = self.func(*args, **kwargs)
             self.last_execution = present
 
         self.last_call = present
 
-        return self.last_result
+        return self.last_result  # type: ignore
 
 
 class Disjoin(object):
@@ -287,21 +294,21 @@ class Negate(object):
         return not self.func(*args, **kwargs)
 
 
-class Once(object):
+class Once(Generic[P, T]):
     """Wrap a function in a once context."""
 
-    def __init__(self, func):
+    def __init__(self, func: Callable[P, T]) -> None:
         self.func = func
         self.result = None
         self.called = False
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
         """Return results from the first call of :attr:`func`."""
         if not self.called:
             self.result = self.func(*args, **kwargs)
             self.called = True
 
-        return self.result
+        return self.result  # type: ignore
 
 
 class Partial(object):
@@ -363,28 +370,28 @@ class Rearg(object):
         return self.func(*args, **kwargs)
 
 
-class Spread(object):
+class Spread(Generic[P, T]):
     """Wrap a function in a spread context."""
 
-    def __init__(self, func):
+    def __init__(self, func: Callable[P, T]) -> None:
         self.func = func
 
-    def __call__(self, args):
+    def __call__(self, args: Iterable) -> T:
         """Return results from :attr:`func` using array of `args` provided."""
         return self.func(*args)
 
 
-class Throttle(object):
+class Throttle(Generic[P, T]):
     """Wrap a function in a throttle context."""
 
-    def __init__(self, func, wait):
+    def __init__(self, func: Callable[P, T], wait: int):
         self.func = func
         self.wait = wait
 
         self.last_result = None
         self.last_execution = pyd.now() - self.wait
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
         """
         Execute :attr:`func` if function hasn't been called within last :attr:`wait` milliseconds.
 
@@ -396,10 +403,10 @@ class Throttle(object):
             self.last_result = self.func(*args, **kwargs)
             self.last_execution = present
 
-        return self.last_result
+        return self.last_result  # type: ignore
 
 
-def after(func, n):
+def after(func: Callable[P, T], n: int) -> After[P, T]:
     """
     Creates a function that executes `func`, with the arguments of the created function, only after
     being called `n` times.
@@ -430,7 +437,7 @@ def after(func, n):
     return After(func, n)
 
 
-def ary(func, n):
+def ary(func: Callable[P, T], n: int) -> Ary[P, T]:
     """
     Creates a function that accepts up to `n` arguments ignoring any additional arguments. Only
     positional arguments are capped. All keyword arguments are allowed through.
@@ -456,7 +463,7 @@ def ary(func, n):
     return Ary(func, n)
 
 
-def before(func, n):
+def before(func: Callable[P, T], n: int) -> Before[P, T]:
     """
     Creates a function that executes `func`, with the arguments of the created function, until it
     has been called `n` times.
@@ -576,7 +583,7 @@ def curry_right(func, arity=None):
     return CurryRight(func, arity)
 
 
-def debounce(func, wait, max_wait=False):
+def debounce(func: Callable[P, T], wait: int, max_wait: int | Literal[False] = False) -> Callable[P, T]:
     """
     Creates a function that will delay the execution of `func` until after `wait` milliseconds have
     elapsed since the last time it was invoked. Subsequent calls to the debounced function will
@@ -595,7 +602,7 @@ def debounce(func, wait, max_wait=False):
     return Debounce(func, wait, max_wait=max_wait)
 
 
-def delay(func, wait, *args, **kwargs):
+def delay(func: Callable[P, T], wait: int, *args: P.args, **kwargs: P.kwargs) -> T:
     """
     Executes the `func` function after `wait` milliseconds. Additional arguments will be provided to
     `func` when it is invoked.
@@ -642,6 +649,7 @@ def disjoin(*funcs):
     return Disjoin(*funcs)
 
 
+# TODO: hum a bit tricky
 def flip(func):
     """
     Creates a function that invokes the method with arguments reversed.
@@ -666,6 +674,7 @@ def flip(func):
     return Flip(func)
 
 
+# TODO: seems really hard to type
 def flow(*funcs):
     """
     Creates a function that is the composition of the provided functions, where each successive
@@ -808,7 +817,7 @@ def negate(func):
     return Negate(func)
 
 
-def once(func):
+def once(func: Callable[P, T]) -> Once[P, T]:
     """
     Creates a function that is restricted to execute `func` once. Repeat calls to the function will
     return the value of the first call.
@@ -939,7 +948,7 @@ def rearg(func, *indexes):
     return Rearg(func, *indexes)
 
 
-def spread(func):
+def spread(func: Callable[P, T]) -> Spread[P, T]:
     """
     Creates a function that invokes `func` with the array of arguments provided to the created
     function.
@@ -961,7 +970,7 @@ def spread(func):
     return Spread(func)
 
 
-def throttle(func, wait):
+def throttle(func: Callable[P, T], wait: int) -> Throttle[P, T]:
     """
     Creates a function that, when executed, will only call the `func` function at most once per
     every `wait` milliseconds. Subsequent calls to the throttled function will return the result of
@@ -979,7 +988,7 @@ def throttle(func, wait):
     return Throttle(func, wait)
 
 
-def unary(func):
+def unary(func: Callable[P, T]) -> Ary[P, T]:
     """
     Creates a function that accepts up to one argument, ignoring any additional arguments.
 

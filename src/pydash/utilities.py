@@ -4,6 +4,8 @@ Utility functions.
 .. versionadded:: 1.0.0
 """
 
+from typing import Any, Callable, Iterable, overload
+
 from collections import namedtuple
 from datetime import datetime
 from functools import partial, wraps
@@ -15,6 +17,7 @@ import time
 import pydash as pyd
 
 from .helpers import NUMBER_TYPES, UNSET, base_get, callit, getargcount, iterator
+from .types import P, T, IterateeObjT
 
 
 __all__ = (
@@ -73,7 +76,7 @@ ID_COUNTER = 0
 PathToken = namedtuple("PathToken", ["key", "default_factory"])
 
 
-def attempt(func, *args, **kwargs):
+def attempt(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T | Exception:
     """
     Attempts to execute `func`, returning either the result or the caught error object.
 
@@ -98,6 +101,7 @@ def attempt(func, *args, **kwargs):
     return ret
 
 
+# TODO: tricky
 def cond(pairs, *extra_pairs):
     """
     Creates a function that iterates over `pairs` and invokes the corresponding function of the
@@ -153,6 +157,7 @@ def cond(pairs, *extra_pairs):
     return _cond
 
 
+# TODO: needs some overloads
 def conforms(source):
     """
     Creates a function that invokes the predicate properties of `source` with the corresponding
@@ -318,6 +323,26 @@ def identity(arg=None, *args):
     return arg
 
 
+@overload
+def iteratee(func: Callable[P, T]) -> Callable[P, T]:
+    ...
+
+
+@overload
+def iteratee(func: dict) -> Callable[[IterateeObjT], bool]:
+    ...
+
+
+@overload
+def iteratee(func: IterateeObjT) -> Callable[[IterateeObjT], Any]:
+    ...
+
+
+@overload
+def iteratee(func: Any) -> Callable[[T], T]:
+    ...
+
+
 def iteratee(func):
     """
     Return a pydash style iteratee. If `func` is a property name the created iteratee will return
@@ -401,7 +426,7 @@ def iteratee(func):
     return cbk
 
 
-def matches(source):
+def matches(source: IterateeObjT) -> Callable[[IterateeObjT], bool]:
     """
     Creates a matches-style predicate function which performs a deep comparison between a given
     object and the `source` object, returning ``True`` if the given object has equivalent property
@@ -431,7 +456,7 @@ def matches(source):
     return lambda obj: pyd.is_match(obj, source)
 
 
-def matches_property(key, value):
+def matches_property(key: str, value: IterateeObjT) -> Callable[[IterateeObjT], bool]:
     """
     Creates a function that compares the property value of `key` on a given object to `value`.
 
@@ -631,8 +656,8 @@ def now():
     else:  # pragma: no cover
         # PY26
         seconds = (
-            delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10 ** 6
-        ) / 10 ** 6
+            delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6
+        ) / 10**6
 
     return int(seconds * 1000)
 
@@ -715,7 +740,8 @@ def over_some(funcs):
     return _over_some
 
 
-def property_(path):
+# TODO: should accept int
+def property_(path: str | Iterable[str]) -> Callable[[IterateeObjT], Any]:
     """
     Creates a function that returns the value at path of a given object.
 
@@ -744,7 +770,7 @@ def property_(path):
     return lambda obj: pyd.get(obj, path)
 
 
-def properties(*paths):
+def properties(*paths: str | Iterable[str]) -> Callable[[IterateeObjT], Any]:
     """
     Like :func:`property_` except that it returns a list of values at each path in `paths`.
 

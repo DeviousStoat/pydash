@@ -5,11 +5,27 @@ Functions that operate on lists and dicts.
 """
 
 from functools import cmp_to_key
+from typing import Any, Callable, Generator, Mapping, Iterable, Sequence, Sized, overload
 import random
 
 import pydash as pyd
 
-from .helpers import callit, cmp, getargcount, iterator, iteriteratee
+from .helpers import (
+    callit,
+    cmp,
+    getargcount,
+    iterator,
+    iteriteratee,
+)
+from .types import (
+    T,
+    T2,
+    T3,
+    IterateeObjT,
+    CollectionT,
+    DictIterateeT,
+    ListIterateeT,
+)
 
 
 __all__ = (
@@ -47,6 +63,16 @@ __all__ = (
 )
 
 
+@overload
+def at(collection: Mapping[T, T2], *paths: T | Iterable[T]) -> list[T2]:
+    ...
+
+
+@overload
+def at(collection: Iterable[T], *paths: int | Iterable[int]) -> list[T]:
+    ...
+
+
 def at(collection, *paths):
     """
     Creates a list of elements from the specified indexes, or keys, of the collection. Indexes may
@@ -75,6 +101,26 @@ def at(collection, *paths):
         Support deep path access.
     """
     return pyd.properties(*paths)(collection)
+
+
+@overload
+def count_by(collection: Mapping[Any, T2], iteratee: None = None) -> dict[T2, int]:
+    ...
+
+
+@overload
+def count_by(collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, T3]) -> dict[T3, int]:
+    ...
+
+
+@overload
+def count_by(collection: Iterable[T], iteratee: None = None) -> dict[T, int]:
+    ...
+
+
+@overload
+def count_by(collection: Iterable[T], iteratee: ListIterateeT[T, T2]) -> dict[T2, int]:
+    ...
 
 
 def count_by(collection, iteratee=None):
@@ -109,12 +155,14 @@ def count_by(collection, iteratee=None):
     return ret
 
 
-def every(collection, predicate=None):
+def every(collection: Iterable[T], predicate: Callable[[T], Any] | IterateeObjT = None) -> bool:
     """
-    Checks if the predicate returns a truthy value for all elements of a collection. The predicate
-    is invoked with three arguments: ``(value, index|key, collection)``. If a property name is
-    passed for predicate, the created :func:`pluck` style predicate will return the property value
-    of the given element. If an object is passed for predicate, the created :func:`.matches` style
+    Checks if the predicate returns a truthy value for all elements of a collection.
+    # TODO: this below is not true
+    The predicate is invoked with three arguments: ``(value, index|key, collection)``.
+    If a property name is passed for predicate, the created :func:`pluck` style
+    predicate will return the property value of the given element.
+    If an object is passed for predicate, the created :func:`.matches` style
     predicate will return ``True`` for elements that have the properties of the given object, else
     ``False``.
 
@@ -152,6 +200,20 @@ def every(collection, predicate=None):
     return all(collection)
 
 
+@overload
+def filter_(
+    collection: Mapping[T, T2], predicate: DictIterateeT[T2, T, bool] | IterateeObjT = None
+) -> list[T2]:
+    ...
+
+
+@overload
+def filter_(
+    collection: Iterable[T], predicate: ListIterateeT[T, bool] | IterateeObjT = None
+) -> list[T]:
+    ...
+
+
 def filter_(collection, predicate=None):
     """
     Iterates over elements of a collection, returning a list of all elements the predicate returns
@@ -177,6 +239,20 @@ def filter_(collection, predicate=None):
         Removed alias ``select``.
     """
     return [value for is_true, value, _, _ in iteriteratee(collection, predicate) if is_true]
+
+
+@overload
+def find(
+    collection: Mapping[T, T2], predicate: DictIterateeT[T2, T, bool] | IterateeObjT = None
+) -> T2 | None:
+    ...
+
+
+@overload
+def find(
+    collection: Iterable[T], predicate: ListIterateeT[T, bool] | IterateeObjT = None
+) -> T | None:
+    ...
 
 
 def find(collection, predicate=None):
@@ -205,6 +281,20 @@ def find(collection, predicate=None):
     """
     search = (value for is_true, value, _, _ in iteriteratee(collection, predicate) if is_true)
     return next(search, None)
+
+
+@overload
+def find_last(
+    collection: Mapping[T, T2], predicate: DictIterateeT[T2, T, bool] | IterateeObjT = None
+) -> T2 | None:
+    ...
+
+
+@overload
+def find_last(
+    collection: Iterable[T], predicate: ListIterateeT[T, bool] | IterateeObjT = None
+) -> T | None:
+    ...
 
 
 def find_last(collection, predicate=None):
@@ -237,6 +327,37 @@ def find_last(collection, predicate=None):
     return next(search, None)
 
 
+@overload
+def flat_map(collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, T3]) -> list[T3]:
+    ...
+
+
+@overload
+def flat_map(collection: Mapping[Any, T2], iteratee: None = None) -> list[T2]:
+    ...
+
+
+@overload
+def flat_map(collection: Iterable[Iterable[T]], iteratee: ListIterateeT[T, T2]) -> list[T2]:
+    ...
+
+
+@overload
+def flat_map(collection: Iterable[Iterable[T]], iteratee: None = None) -> list[T]:
+    ...
+
+
+@overload
+def flat_map(collection: Iterable[T], iteratee: ListIterateeT[T, T2]) -> list[T2]:
+    ...
+
+
+@overload
+def flat_map(collection: Iterable[T], iteratee: None = None) -> list[T]:
+    ...
+
+
+# TODO: add typing for object iteratee
 def flat_map(collection, iteratee=None):
     """
     Creates a flattened list of values by running each element in collection thru `iteratee` and
@@ -261,6 +382,7 @@ def flat_map(collection, iteratee=None):
     return pyd.flatten(itermap(collection, iteratee=iteratee))
 
 
+# TODO: too deep :(
 def flat_map_deep(collection, iteratee=None):
     """
     This method is like :func:`flat_map` except that it recursively flattens the mapped results.
@@ -283,6 +405,7 @@ def flat_map_deep(collection, iteratee=None):
     return pyd.flatten_deep(itermap(collection, iteratee=iteratee))
 
 
+# TODO: too deep :(
 def flat_map_depth(collection, iteratee=None, depth=1):
     """
     This method is like :func:`flat_map` except that it recursively flattens the mapped results up
@@ -306,6 +429,20 @@ def flat_map_depth(collection, iteratee=None, depth=1):
     .. versionadded:: 4.0.0
     """
     return pyd.flatten_depth(itermap(collection, iteratee=iteratee), depth=depth)
+
+
+@overload
+def for_each(
+    collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, Any] | IterateeObjT = None
+) -> Mapping[T, T2]:
+    ...
+
+
+@overload
+def for_each(
+    collection: Iterable[T], iteratee: ListIterateeT[T, Any] | IterateeObjT = None
+) -> Iterable[T]:
+    ...
 
 
 def for_each(collection, iteratee=None):
@@ -334,6 +471,20 @@ def for_each(collection, iteratee=None):
     """
     next((None for ret, _, _, _ in iteriteratee(collection, iteratee) if ret is False), None)
     return collection
+
+
+@overload
+def for_each_right(
+    collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, Any] | IterateeObjT
+) -> Mapping[T, T2]:
+    ...
+
+
+@overload
+def for_each_right(
+    collection: Iterable[T], iteratee: ListIterateeT[T, Any] | IterateeObjT
+) -> Iterable[T]:
+    ...
 
 
 def for_each_right(collection, iteratee):
@@ -368,6 +519,7 @@ def for_each_right(collection, iteratee):
     return collection
 
 
+# TODO: tricky
 def group_by(collection, iteratee=None):
     """
     Creates an object composed of keys generated from the results of running each element of a
@@ -401,7 +553,7 @@ def group_by(collection, iteratee=None):
     return ret
 
 
-def includes(collection, target, from_index=0):
+def includes(collection: Sequence | Mapping, target: Any, from_index: int = 0) -> bool:
     """
     Checks if a given value is present in a collection. If `from_index` is negative, it is used as
     the offset from the end of the collection.
@@ -430,14 +582,15 @@ def includes(collection, target, from_index=0):
         ``include``.
     """
     if isinstance(collection, dict):
-        collection = collection.values()
+        collection_values = collection.values()
     else:
         # only makes sense to do this if `collection` is not a dict
-        collection = collection[from_index:]
+        collection_values = collection[from_index:]
 
-    return target in collection
+    return target in collection_values
 
 
+# TODO: invoke the map yourself :(
 def invoke_map(collection, path, *args, **kwargs):
     """
     Invokes the method at `path` of each element in `collection`, returning a list of the results of
@@ -464,6 +617,21 @@ def invoke_map(collection, path, *args, **kwargs):
     .. versionadded:: 4.0.0
     """
     return map_(collection, lambda item: pyd.invoke(item, path, *args, **kwargs))
+
+
+@overload
+def key_by(collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, T3]) -> dict[T3, T]:
+    ...
+
+
+@overload
+def key_by(collection: Iterable[T], iteratee: ListIterateeT[T, T2]) -> dict[T2, T]:
+    ...
+
+
+@overload
+def key_by(collection: Iterable, iteratee: IterateeObjT = None) -> dict:
+    ...
 
 
 def key_by(collection, iteratee=None):
@@ -496,6 +664,26 @@ def key_by(collection, iteratee=None):
         ret[cbk(value)] = value
 
     return ret
+
+
+@overload
+def map_(collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, T3]) -> list[T3]:
+    ...
+
+
+@overload
+def map_(collection: Mapping, iteratee: IterateeObjT = None) -> list:
+    ...
+
+
+@overload
+def map_(collection: Iterable[T], iteratee: ListIterateeT[T, T2]) -> list[T2]:
+    ...
+
+
+@overload
+def map_(collection: Iterable, iteratee: IterateeObjT = None) -> list:
+    ...
 
 
 def map_(collection, iteratee=None):
@@ -535,6 +723,7 @@ def map_(collection, iteratee=None):
     return list(itermap(collection, iteratee))
 
 
+# TODO: tricky
 def nest(collection, *properties):
     """
     This method is like :func:`group_by` except that it supports nested grouping by multiple string
@@ -577,6 +766,7 @@ def nest(collection, *properties):
     return pyd.map_values(group_by(collection, first), lambda value: nest(value, *rest))
 
 
+# TODO: see you later, mayhem it is
 def order_by(collection, keys, orders=None, reverse=False):
     """
     This method is like :func:`sort_by` except that it sorts by key names instead of an iteratee
@@ -668,6 +858,26 @@ def order_by(collection, keys, orders=None, reverse=False):
     return sorted(collection, key=cmp_to_key(comparison), reverse=reverse)
 
 
+@overload
+def partition(collection: Mapping[T, T2], predicate: DictIterateeT[T2, T, bool]) -> list[list[T2]]:
+    ...
+
+
+@overload
+def partition(collection: Mapping[Any, T2], predicate: IterateeObjT = None) -> list[list[T2]]:
+    ...
+
+
+@overload
+def partition(collection: Iterable[T], predicate: ListIterateeT[T, bool]) -> list[list[T]]:
+    ...
+
+
+@overload
+def partition(collection: Iterable[T], predicate: IterateeObjT = None) -> list[list[T]]:
+    ...
+
+
 def partition(collection, predicate=None):
     """
     Creates an array of elements split into two groups, the first of which contains elements the
@@ -707,7 +917,8 @@ def partition(collection, predicate=None):
     return [trues, falses]
 
 
-def pluck(collection, path):
+# TODO: check if can make this better
+def pluck(collection: Iterable, path: str | list[str]) -> list:
     """
     Retrieves the value of a specified property from all elements in the collection.
 
@@ -742,6 +953,7 @@ def pluck(collection, path):
     return map_(collection, pyd.property_(path))
 
 
+# TODO: gnagnagnagna
 def reduce_(collection, iteratee=None, accumulator=None):
     """
     Reduces a collection to a value which is the accumulated result of running each element in the
@@ -789,6 +1001,7 @@ def reduce_(collection, iteratee=None, accumulator=None):
     return result
 
 
+# TODO: gnagnagnagna
 def reduce_right(collection, iteratee=None, accumulator=None):
     """
     This method is like :func:`reduce_` except that it iterates over elements of a `collection` from
@@ -822,6 +1035,7 @@ def reduce_right(collection, iteratee=None, accumulator=None):
     return reduce_(collection, iteratee, accumulator)
 
 
+# TODO: gnagnagnagna
 def reductions(collection, iteratee=None, accumulator=None, from_right=False):
     """
     This function is like :func:`reduce_` except that it returns a list of every intermediate value
@@ -866,6 +1080,7 @@ def reductions(collection, iteratee=None, accumulator=None, from_right=False):
     return results
 
 
+# TODO: gnagnagnagna
 def reductions_right(collection, iteratee=None, accumulator=None):
     """
     This method is like :func:`reductions` except that it iterates over elements of a `collection`
@@ -894,6 +1109,20 @@ def reductions_right(collection, iteratee=None, accumulator=None):
     return reductions(collection, iteratee, accumulator, from_right=True)
 
 
+@overload
+def reject(
+    collection: Mapping[T, T2], predicate: DictIterateeT[T2, T, bool] | IterateeObjT = None
+) -> list[T2]:
+    ...
+
+
+@overload
+def reject(
+    collection: Iterable[T], predicate: ListIterateeT[T, bool] | IterateeObjT = None
+) -> list[T]:
+    ...
+
+
 def reject(collection, predicate=None):
     """
     The opposite of :func:`filter_` this method returns the elements of a collection that the
@@ -920,7 +1149,7 @@ def reject(collection, predicate=None):
     return [value for is_true, value, _, _ in iteriteratee(collection, predicate) if not is_true]
 
 
-def sample(collection):
+def sample(collection: Sequence[T]) -> T:
     """
     Retrieves a random element from a given `collection`.
 
@@ -945,7 +1174,7 @@ def sample(collection):
     return random.choice(collection)
 
 
-def sample_size(collection, n=None):
+def sample_size(collection: Sequence[T], n: int | None = None) -> list[T]:
     """
     Retrieves list of `n` random elements from a collection.
 
@@ -967,6 +1196,16 @@ def sample_size(collection, n=None):
     """
     num = min(n or 1, len(collection))
     return random.sample(collection, num)
+
+
+@overload
+def shuffle(collection: Mapping[Any, T]) -> list[T]:
+    ...
+
+
+@overload
+def shuffle(collection: Iterable[T]) -> list[T]:
+    ...
 
 
 def shuffle(collection):
@@ -1000,7 +1239,7 @@ def shuffle(collection):
     return collection
 
 
-def size(collection):
+def size(collection: Sized) -> int:
     """
     Gets the size of the `collection` by returning `len(collection)` for iterable objects.
 
@@ -1020,8 +1259,9 @@ def size(collection):
     return len(collection)
 
 
-def some(collection, predicate=None):
+def some(collection: Iterable[T], predicate: Callable[[T], Any] | None = None) -> bool:
     """
+    # TODO: not true, not invoked with three arguments
     Checks if the predicate returns a truthy value for any element of a collection. The predicate is
     invoked with three arguments: ``(value, index|key, collection)``. If a property name is passed
     for predicate, the created :func:`map_` style predicate will return the property value of the
@@ -1059,6 +1299,24 @@ def some(collection, predicate=None):
     return any(collection)
 
 
+@overload
+def sort_by(
+    collection: Mapping[Any, T2],
+    iteratee: Callable[[T2], Any] | IterateeObjT = None,
+    reverse: bool = False,
+) -> list[T2]:
+    ...
+
+
+@overload
+def sort_by(
+    collection: Iterable[T],
+    iteratee: Callable[[T], Any] | IterateeObjT = None,
+    reverse: bool = False,
+) -> list[T]:
+    ...
+
+
 def sort_by(collection, iteratee=None, reverse=False):
     """
     Creates a list of elements, sorted in ascending order by the results of running each element in
@@ -1093,8 +1351,8 @@ def sort_by(collection, iteratee=None, reverse=False):
 # Utility methods not a part of the main API
 #
 
-
-def itermap(collection, iteratee=None):
+# TODO: let's see if we need to type this better
+def itermap(collection: CollectionT, iteratee: Callable | IterateeObjT = None) -> Generator:
     """Generative mapper."""
     for result in iteriteratee(collection, iteratee):
         yield result[0]

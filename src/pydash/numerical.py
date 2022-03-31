@@ -6,10 +6,29 @@ Numerical/mathematical related functions.
 
 import math
 import operator
+from typing import Any, Callable, overload, Literal, Mapping, Iterable
 
 import pydash as pyd
 
-from .helpers import UNSET, iterator, iterator_with_default, iteriteratee
+from .helpers import (
+    UNSET,
+    iterator,
+    iterator_with_default,
+    iteriteratee,
+    Unset,
+)
+from .types import (
+    T,
+    T2,
+    T3,
+    Addable,
+    DictIterateeT,
+    ListIterateeT,
+    Number,
+    NumberT,
+    ToT,
+    WithT,
+)
 
 
 __all__ = (
@@ -44,6 +63,16 @@ __all__ = (
 INFINITY = float("inf")
 
 
+@overload
+def add(a: Addable[WithT, ToT], b: WithT) -> ToT:
+    ...
+
+
+@overload
+def add(a: WithT, b: Addable[WithT, ToT]) -> ToT:
+    ...
+
+
 def add(a, b):
     """
     Adds two numbers.
@@ -69,6 +98,16 @@ def add(a, b):
         Only support two argument addition.
     """
     return a + b
+
+
+@overload
+def sum_(collection: Mapping[Any, Addable[T, T]]) -> T | Literal[0]:
+    ...
+
+
+@overload
+def sum_(collection: Iterable[Addable[T, T]]) -> T | Literal[0]:
+    ...
 
 
 def sum_(collection):
@@ -98,6 +137,27 @@ def sum_(collection):
     return sum_by(collection)
 
 
+@overload
+def sum_by(collection: Mapping[T, T2], iteratee: DictIterateeT[T2, T, Addable[T3, T3]]) -> T3:
+    ...
+
+
+@overload
+def sum_by(collection: Mapping[Any, Addable[T2, T2]], iteratee: None = None) -> T2:
+    ...
+
+
+@overload
+def sum_by(collection: Iterable[T], iteratee: ListIterateeT[T, Addable[T2, T2]]) -> T2:
+    ...
+
+
+@overload
+def sum_by(collection: Iterable[Addable[T, T]], iteratee: None = None) -> T:
+    ...
+
+
+# TODO: add types for iteratee obj
 def sum_by(collection, iteratee=None):
     """
     Sum each element in `collection`. If iteratee is passed, each element of `collection` is passed
@@ -118,6 +178,16 @@ def sum_by(collection, iteratee=None):
     .. versionadded:: 4.0.0
     """
     return sum(result[0] for result in iteriteratee(collection, iteratee))
+
+
+@overload
+def mean(collection: Mapping[Any, Number]) -> float:
+    ...
+
+
+@overload
+def mean(collection: Iterable[Number]) -> float:
+    ...
 
 
 def mean(collection):
@@ -145,6 +215,20 @@ def mean(collection):
     return mean_by(collection)
 
 
+@overload
+def mean_by(
+    collection: Mapping[T, Number], iteratee: DictIterateeT[Number, T, Number] | None = None
+) -> float:
+    ...
+
+
+@overload
+def mean_by(
+    collection: Iterable[Number], iteratee: ListIterateeT[Number, Number] | None = None
+) -> float:
+    ...
+
+
 def mean_by(collection, iteratee=None):
     """
     Calculate arithmetic mean of each element in `collection`. If iteratee is passed, each element
@@ -167,7 +251,7 @@ def mean_by(collection, iteratee=None):
     return sum_by(collection, iteratee) / len(collection)
 
 
-def ceil(x, precision=0):
+def ceil(x: Number, precision: int = 0) -> int:
     """
     Round number up to precision.
 
@@ -192,7 +276,7 @@ def ceil(x, precision=0):
     return rounder(math.ceil, x, precision)
 
 
-def clamp(x, lower, upper=None):
+def clamp(x: Number, lower: Number, upper: Number | None = None) -> Number:
     """
     Clamps number within the inclusive lower and upper bounds.
 
@@ -229,7 +313,7 @@ def clamp(x, lower, upper=None):
     return x
 
 
-def divide(dividend, divisor):
+def divide(dividend: Number | None, divisor: Number | None) -> float:
     """
     Divide two numbers.
 
@@ -256,7 +340,7 @@ def divide(dividend, divisor):
     return call_math_operator(dividend, divisor, operator.truediv, 1)
 
 
-def floor(x, precision=0):
+def floor(x: Number, precision: int = 0) -> float:
     """
     Round number down to precision.
 
@@ -279,6 +363,26 @@ def floor(x, precision=0):
     .. versionadded:: 3.3.0
     """
     return rounder(math.floor, x, precision)
+
+
+@overload
+def max_(collection: Mapping[Any, T], default: Unset = UNSET) -> T:
+    ...
+
+
+@overload
+def max_(collection: Mapping[Any, T], default: T2) -> T | T2:
+    ...
+
+
+@overload
+def max_(collection: Iterable[T], default: Unset = UNSET) -> T:
+    ...
+
+
+@overload
+def max_(collection: Iterable[T], default: T2) -> T | T2:
+    ...
 
 
 def max_(collection, default=UNSET):
@@ -758,6 +862,16 @@ def call_math_operator(value1, value2, op, default):
             pass
 
     return op(value1, value2)
+
+
+@overload
+def rounder(func: Callable[[T], NumberT], x: T, precision: int) -> NumberT:
+    ...
+
+
+@overload
+def rounder(func: Callable[[T], NumberT], x: Iterable[T], precision: int) -> Iterable[NumberT]:
+    ...
 
 
 def rounder(func, x, precision):

@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 
 import pydash as _
+from pydash.helpers import UNSET, Unset
 
 
 parametrize = pytest.mark.parametrize
@@ -148,6 +149,8 @@ def test_debounce():
 
     expected = debounced()
 
+    result = UNSET
+
     while (present - start) <= wait + 100:
         result = debounced()
         present = _.now()
@@ -157,6 +160,7 @@ def test_debounce():
     time.sleep(wait / 1000.0)
     result = debounced()
 
+    assert result
     assert result > expected
 
 
@@ -173,10 +177,13 @@ def test_debounce_max_wait():
 
     expected = debounced()
 
+    result = UNSET
+
     while (present - start) <= (max_wait + 5):
         result = debounced()
         present = _.now()
 
+    assert not isinstance(result, Unset)
     assert result > expected
 
 
@@ -289,8 +296,8 @@ def test_once(case, arglist, expected):
 @parametrize(
     "func,transforms,args,expected",
     [
-        (lambda a, b: [a, b], [lambda x: x ** 2, lambda x: x * 2], (5, 10), [25, 20]),
-        (lambda a, b: [a, b], ([lambda x: x ** 2, lambda x: x * 2],), (5, 10), [25, 20]),
+        (lambda a, b: [a, b], [lambda x: x**2, lambda x: x * 2], (5, 10), [25, 20]),
+        (lambda a, b: [a, b], ([lambda x: x**2, lambda x: x * 2],), (5, 10), [25, 20]),
     ],
 )
 def test_over_args(func, transforms, args, expected):
@@ -363,6 +370,8 @@ def test_throttle():
     present = _.now()
 
     expected = throttled()
+
+    result = UNSET
 
     while (present - start) < (wait - 50):
         result = throttled()

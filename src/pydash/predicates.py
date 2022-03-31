@@ -11,10 +11,12 @@ import json
 import operator
 import re
 from types import BuiltinFunctionType
+from typing import Any, Callable, TypeGuard, cast
 
 import pydash as pyd
 
 from .helpers import BUILTINS, NUMBER_TYPES, UNSET, base_get, callit, iterator
+from .types import Number, T, T2
 
 
 __all__ = (
@@ -68,7 +70,7 @@ __all__ = (
 RegExp = type(re.compile(""))
 
 
-def eq(value, other):
+def eq(value: Any, other: T) -> TypeGuard[T]:
     """
     Checks if :attr:`value` is equal to :attr:`other`.
 
@@ -95,7 +97,8 @@ def eq(value, other):
     return value is other
 
 
-def gt(value, other):
+# TODO: `SupportComparison` protocol
+def gt(value: Any, other: Any) -> bool:
     """
     Checks if `value` is greater than `other`.
 
@@ -120,7 +123,8 @@ def gt(value, other):
     return value > other
 
 
-def gte(value, other):
+# TODO: `SupportComparison` protocol
+def gte(value: Any, other: Any) -> bool:
     """
     Checks if `value` is greater than or equal to `other`.
 
@@ -145,7 +149,8 @@ def gte(value, other):
     return value >= other
 
 
-def lt(value, other):
+# TODO: `SupportComparison` protocol
+def lt(value: Any, other: Any) -> bool:
     """
     Checks if `value` is less than `other`.
 
@@ -170,7 +175,8 @@ def lt(value, other):
     return value < other
 
 
-def lte(value, other):
+# TODO: `SupportComparison` protocol
+def lte(value: Any, other: Any) -> bool:
     """
     Checks if `value` is less than or equal to `other`.
 
@@ -195,7 +201,7 @@ def lte(value, other):
     return value <= other
 
 
-def in_range(value, start=0, end=None):
+def in_range(value: Number, start: Number = 0, end: Number | None = None) -> bool:
     """
     Checks if `value` is between `start` and up to but not including `end`. If `end` is not
     specified it defaults to `start` with `start` becoming ``0``.
@@ -241,7 +247,7 @@ def in_range(value, start=0, end=None):
     return start <= value < end
 
 
-def is_associative(value):
+def is_associative(value: Any) -> bool:
     """
     Checks if `value` is an associative object meaning that it can be accessed via an index or key.
 
@@ -267,7 +273,7 @@ def is_associative(value):
     return hasattr(value, "__getitem__")
 
 
-def is_blank(text):
+def is_blank(text: str) -> bool:
     r"""Checks if `text` contains only whitespace characters.
 
     Args:
@@ -295,7 +301,7 @@ def is_blank(text):
     return ret
 
 
-def is_boolean(value):
+def is_boolean(value: Any) -> TypeGuard[bool]:
     """
     Checks if `value` is a boolean value.
 
@@ -325,7 +331,7 @@ def is_boolean(value):
     return isinstance(value, bool)
 
 
-def is_builtin(value):
+def is_builtin(value: Any) -> bool:
     """
     Checks if `value` is a Python builtin function or method.
 
@@ -355,7 +361,7 @@ def is_builtin(value):
         return False
 
 
-def is_date(value):
+def is_date(value: Any) -> TypeGuard[datetime.date]:
     """
     Check if `value` is a date object.
 
@@ -383,7 +389,7 @@ def is_date(value):
     return isinstance(value, datetime.date)
 
 
-def is_decreasing(value):
+def is_decreasing(value: list) -> bool:
     """
     Check if `value` is monotonically decreasing.
 
@@ -407,7 +413,7 @@ def is_decreasing(value):
     return is_monotone(value, operator.ge)
 
 
-def is_dict(value):
+def is_dict(value: Any) -> TypeGuard[dict]:
     """
     Checks if `value` is a ``dict``.
 
@@ -435,7 +441,7 @@ def is_dict(value):
     return isinstance(value, dict)
 
 
-def is_empty(value):
+def is_empty(value: Any) -> bool:
     """
     Checks if `value` is empty.
 
@@ -468,7 +474,7 @@ def is_empty(value):
     return is_boolean(value) or is_number(value) or not value
 
 
-def is_equal(value, other):
+def is_equal(value: Any, other: Any) -> bool:
     """
     Performs a comparison between two values to determine if they are equivalent to each other.
 
@@ -495,7 +501,11 @@ def is_equal(value, other):
     return is_equal_with(value, other, customizer=None)
 
 
-def is_equal_with(value, other, customizer):
+def is_equal_with(
+    value: list[T] | dict[Any, T] | Any,
+    other: list[T2] | dict[Any, T2] | Any,
+    customizer: Callable[[T, T2], bool | None] | None,
+) -> bool:
     """
     This method is like :func:`is_equal` except that it accepts customizer which is invoked to
     compare values. A customizer is provided which will be executed to compare values. If the
@@ -550,7 +560,7 @@ def is_equal_with(value, other, customizer):
     return equal
 
 
-def is_error(value):
+def is_error(value: Any) -> TypeGuard[Exception]:
     """
     Checks if `value` is an ``Exception``.
 
@@ -574,7 +584,7 @@ def is_error(value):
     return isinstance(value, Exception)
 
 
-def is_even(value):
+def is_even(value: Any) -> TypeGuard[Number]:
     """
     Checks if `value` is even.
 
@@ -598,7 +608,7 @@ def is_even(value):
     return is_number(value) and value % 2 == 0
 
 
-def is_float(value):
+def is_float(value: Any) -> TypeGuard[float]:
     """
     Checks if `value` is a float.
 
@@ -620,7 +630,7 @@ def is_float(value):
     return isinstance(value, float)
 
 
-def is_function(value):
+def is_function(value: Any) -> TypeGuard[Callable]:
     """
     Checks if `value` is a function.
 
@@ -644,7 +654,7 @@ def is_function(value):
     return callable(value)
 
 
-def is_increasing(value):
+def is_increasing(value: list) -> bool:
     """
     Check if `value` is monotonically increasing.
 
@@ -670,7 +680,7 @@ def is_increasing(value):
     return is_monotone(value, operator.le)
 
 
-def is_indexed(value):
+def is_indexed(value: Any) -> bool:
     """
     Checks if `value` is integer indexed, i.e., ``list``, ``str`` or ``tuple``.
 
@@ -699,7 +709,7 @@ def is_indexed(value):
     return isinstance(value, (list, tuple, str))
 
 
-def is_instance_of(value, types):
+def is_instance_of(value: Any, types: type | tuple[type]) -> bool:
     """
     Checks if `value` is an instance of `types`.
 
@@ -723,7 +733,7 @@ def is_instance_of(value, types):
     return isinstance(value, types)
 
 
-def is_integer(value):
+def is_integer(value: Any) -> TypeGuard[int]:
     """
     Checks if `value` is a integer.
 
@@ -753,7 +763,7 @@ def is_integer(value):
     return is_number(value) and isinstance(value, int)
 
 
-def is_iterable(value):
+def is_iterable(value: Any) -> bool:
     """
     Checks if `value` is an iterable.
 
@@ -786,7 +796,7 @@ def is_iterable(value):
         return True
 
 
-def is_json(value):
+def is_json(value: Any) -> bool:
     """
     Checks if `value` is a valid JSON string.
 
@@ -816,7 +826,7 @@ def is_json(value):
         return False
 
 
-def is_list(value):
+def is_list(value: list[T] | Any) -> TypeGuard[list[T]]:
     """
     Checks if `value` is a list.
 
@@ -840,7 +850,7 @@ def is_list(value):
     return isinstance(value, list)
 
 
-def is_match(obj, source):
+def is_match(obj: Any, source: Any) -> bool:
     """
     Performs a partial deep comparison between `obj` and `source` to determine if `obj` contains
     equivalent property values.
@@ -874,6 +884,7 @@ def is_match(obj, source):
     return is_match_with(obj, source)
 
 
+# TODO: looks tricky
 def is_match_with(obj, source, customizer=None, _key=UNSET, _obj=UNSET, _source=UNSET):
     """
     This method is like :func:`is_match` except that it accepts customizer which is invoked to
@@ -913,7 +924,7 @@ def is_match_with(obj, source, customizer=None, _key=UNSET, _obj=UNSET, _source=
 
         cbk._argcount = 2
     else:
-        cbk = customizer
+        cbk = customizer  # type: ignore
 
     if isinstance(source, (Mapping, Iterable)) and not isinstance(source, str):
         # Set equal to True if source is empty, otherwise, False and then allow deep comparison to
@@ -936,7 +947,7 @@ def is_match_with(obj, source, customizer=None, _key=UNSET, _obj=UNSET, _source=
     return equal
 
 
-def is_monotone(value, op):
+def is_monotone(value: list[T] | T, op: Callable[[T, T], bool]) -> bool:
     """
     Checks if `value` is monotonic when `operator` used for comparison.
 
@@ -957,14 +968,14 @@ def is_monotone(value, op):
     .. versionadded:: 2.0.0
     """
     if not is_list(value):
-        value = [value]
+        value = cast(list, [value])
 
     search = (False for x, y in zip(value, islice(value, 1, None)) if not op(x, y))
 
     return next(search, True)
 
 
-def is_nan(value):
+def is_nan(value: Any) -> bool:
     """
     Checks if `value` is not a number.
 
@@ -988,7 +999,7 @@ def is_nan(value):
     return not is_number(value)
 
 
-def is_negative(value):
+def is_negative(value: Any) -> TypeGuard[Number]:
     """
     Checks if `value` is negative.
 
@@ -1012,7 +1023,7 @@ def is_negative(value):
     return is_number(value) and value < 0
 
 
-def is_none(value):
+def is_none(value: Any) -> TypeGuard[None]:
     """
     Checks if `value` is `None`.
 
@@ -1034,7 +1045,7 @@ def is_none(value):
     return value is None
 
 
-def is_number(value):
+def is_number(value: Any) -> bool:
     """
     Checks if `value` is a number.
 
@@ -1068,7 +1079,7 @@ def is_number(value):
     return not is_boolean(value) and isinstance(value, NUMBER_TYPES)
 
 
-def is_object(value):
+def is_object(value: Any) -> bool:
     """
     Checks if `value` is a ``list`` or ``dict``.
 
@@ -1094,7 +1105,7 @@ def is_object(value):
     return isinstance(value, (list, dict))
 
 
-def is_odd(value):
+def is_odd(value: Any) -> bool:
     """
     Checks if `value` is odd.
 
@@ -1118,7 +1129,7 @@ def is_odd(value):
     return is_number(value) and value % 2 != 0
 
 
-def is_positive(value):
+def is_positive(value: Any) -> bool:
     """
     Checks if `value` is positive.
 
@@ -1142,7 +1153,7 @@ def is_positive(value):
     return is_number(value) and value > 0
 
 
-def is_reg_exp(value):
+def is_reg_exp(value: Any) -> TypeGuard[RegExp]:
     """
     Checks if `value` is a ``RegExp`` object.
 
@@ -1167,7 +1178,7 @@ def is_reg_exp(value):
     return isinstance(value, RegExp)
 
 
-def is_set(value):
+def is_set(value: set[T] | Any) -> TypeGuard[set[T]]:
     """
     Checks if the given value is a set object or not.
 
@@ -1189,7 +1200,7 @@ def is_set(value):
     return isinstance(value, set)
 
 
-def is_strictly_decreasing(value):
+def is_strictly_decreasing(value: Any) -> bool:
     """
     Check if `value` is strictly decreasing.
 
@@ -1211,7 +1222,7 @@ def is_strictly_decreasing(value):
     return is_monotone(value, operator.gt)
 
 
-def is_strictly_increasing(value):
+def is_strictly_increasing(value: Any) -> bool:
     """
     Check if `value` is strictly increasing.
 
@@ -1233,7 +1244,7 @@ def is_strictly_increasing(value):
     return is_monotone(value, operator.lt)
 
 
-def is_string(value):
+def is_string(value: Any) -> TypeGuard[str]:
     """
     Checks if `value` is a string.
 
@@ -1255,7 +1266,7 @@ def is_string(value):
     return isinstance(value, str)
 
 
-def is_tuple(value):
+def is_tuple(value: tuple[T] | Any) -> TypeGuard[tuple[T]]:
     """
     Checks if `value` is a tuple.
 
@@ -1279,7 +1290,7 @@ def is_tuple(value):
     return isinstance(value, tuple)
 
 
-def is_zero(value):
+def is_zero(value: Any) -> TypeGuard[int]:
     """
     Checks if `value` is ``0``.
 

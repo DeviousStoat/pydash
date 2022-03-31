@@ -7,12 +7,20 @@ from functools import wraps
 import inspect
 from inspect import getfullargspec
 import warnings
+from typing import Any, SupportsInt, overload
 
 import pydash as pyd
 
+from pydash.types import T, T2, T3
+
 
 #: Singleton object that differentiates between an explicit ``None`` value and an unset value.
-UNSET = object()
+# Making it a dummy class to have typing
+class Unset:
+    ...
+
+
+UNSET = Unset()
 
 #: Tuple of number types.
 NUMBER_TYPES = (int, float, Decimal)
@@ -114,6 +122,22 @@ def iterator(obj):
         return getattr(obj, "__dict__", {}).items()
 
 
+@overload
+def base_get(obj: Sequence[T], key: T, default: T2) -> T | T2:
+    ...
+
+
+@overload
+def base_get(obj: Sequence[T], key: T, default: Unset = UNSET) -> T | Unset:
+    ...
+
+
+# TODO: finish typing this properly maybe
+@overload
+def base_get(obj: Any, key: Any, default: Any = UNSET) -> Any:
+    ...
+
+
 def base_get(obj, key, default=UNSET):
     """
     Safely get an item by `key` from a sequence or mapping object when `default` provided.
@@ -145,6 +169,36 @@ def base_get(obj, key, default=UNSET):
         raise KeyError(f'Object "{repr(obj)}" does not have key "{key}"')
 
     return value
+
+
+@overload
+def _base_get_dict(obj: dict[int, T2], key: SupportsInt, default: T3) -> T2 | T3:
+    ...
+
+
+@overload
+def _base_get_dict(obj: dict[int, T2], key: SupportsInt, default: Unset = UNSET) -> T2 | Unset:
+    ...
+
+
+@overload
+def _base_get_dict(obj: dict[T, T2], key: T, default: T3) -> T2 | T3:
+    ...
+
+
+@overload
+def _base_get_dict(obj: dict[T, T2], key: T, default: Unset = UNSET) -> T2 | Unset:
+    ...
+
+
+@overload
+def _base_get_dict(obj: dict, key: Any, default: T3) -> T3:
+    ...
+
+
+@overload
+def _base_get_dict(obj: dict, key: Any, default: Unset = UNSET) -> Unset:
+    ...
 
 
 def _base_get_dict(obj, key, default=UNSET):

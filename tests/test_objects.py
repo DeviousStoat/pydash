@@ -5,6 +5,7 @@ import datetime as dt
 import pytest
 
 import pydash as _
+from pydash import helpers
 
 from . import fixtures
 
@@ -61,7 +62,7 @@ def test_clone(case):
 
     assert result is not case
 
-    for key, value in _.helpers.iterator(result):
+    for key, value in helpers.iterator(result):
         assert value is case[key]
 
 
@@ -95,7 +96,7 @@ def test_clone_deep(case):
 
     assert result is not case
 
-    for key, value in _.helpers.iterator(result):
+    for key, value in helpers.iterator(result):
         assert value is not case[key]
 
 

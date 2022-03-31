@@ -8,11 +8,13 @@ import copy
 from functools import partial
 import math
 import re
+from typing import Any, Sequence, SupportsInt, overload
 
 import pydash as pyd
 
 from .helpers import UNSET, base_get, base_set, callit, getargcount, iterator, iteriteratee
 from .utilities import PathToken, to_path, to_path_tokens
+from .types import Representable, T, T2
 
 
 __all__ = (
@@ -463,6 +465,22 @@ def for_in_right(obj, iteratee=None):
     walk = (None for ret, _, _, _ in iteriteratee(obj, iteratee, reverse=True) if ret is False)
     next(walk, None)
     return obj
+
+
+@overload
+def get(obj: Sequence[T], path: SupportsInt, default: T2) -> T | T2:
+    ...
+
+
+@overload
+def get(obj: Sequence[T], path: SupportsInt, default: None = None) -> T | None:
+    ...
+
+
+# TODO: finish typing this
+@overload
+def get(obj: Any, path: Any, default: Any = None) -> Any:
+    ...
 
 
 def get(obj, path, default=None):
@@ -1490,7 +1508,7 @@ def to_pairs(obj):
     return [[key, value] for key, value in iterator(obj)]
 
 
-def to_string(obj):
+def to_string(obj: Representable) -> str:
     """
     Converts an object to string.
 
